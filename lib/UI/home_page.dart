@@ -13,7 +13,7 @@ class HomePage extends HookWidget {
   Widget build(BuildContext context) {
     final serverManager = useMemoized(() => ServerManager());
     final networkUtils = useMemoized(() => NetworkUtils());
-    
+
     final isServerRunning = useState(false);
     final serverIp = useState<String>('');
     final serverPort = useState(8080);
@@ -35,7 +35,7 @@ class HomePage extends HookWidget {
           logs.value = logs.value.sublist(logs.value.length - 100);
         }
       });
-      
+
       return subscription.cancel;
     }, []);
 
@@ -47,7 +47,7 @@ class HomePage extends HookWidget {
           logs.value = [...logs.value, '🔴 Server stopped'];
         }
       });
-      
+
       return subscription.cancel;
     }, []);
 
@@ -58,9 +58,9 @@ class HomePage extends HookWidget {
         logs.value = [...logs.value, '🟢 Server starting...'];
       } catch (e) {
         logs.value = [...logs.value, '❌ Failed to start server: $e'];
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start server: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to start server: $e')));
       } finally {
         isLoading.value = false;
       }
@@ -73,15 +73,15 @@ class HomePage extends HookWidget {
         logs.value = [...logs.value, '🔴 Server stopping...'];
       } catch (e) {
         logs.value = [...logs.value, '❌ Failed to stop server: $e'];
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to stop server: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to stop server: $e')));
       } finally {
         isLoading.value = false;
       }
     }
 
-    final connectionUrl = serverIp.value.isNotEmpty 
+    final connectionUrl = serverIp.value.isNotEmpty
         ? 'http://${serverIp.value}:${serverPort.value}'
         : '';
 
@@ -104,7 +104,7 @@ class HomePage extends HookWidget {
             // Header
             _buildHeader(),
             const SizedBox(height: 24),
-            
+
             // Content Row
             Expanded(
               child: Row(
@@ -125,20 +125,25 @@ class HomePage extends HookWidget {
                           onStop: stopServer,
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // QR Code Card
                         if (connectionUrl.isNotEmpty)
                           _buildQrCard(connectionUrl),
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(width: 16),
-                  
+
                   // Right Column - Logs
                   Expanded(
                     flex: 1,
-                    child: LogsView(logs: logs.value),
+                    child: LogsView(
+                      logs: logs.value,
+                      onClearLogs: () {
+                        logs.value = [];
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -164,10 +169,7 @@ class HomePage extends HookWidget {
         const SizedBox(height: 4),
         Text(
           'Control your PC wirelessly from your phone with mouse, keyboard, and file transfer capabilities.',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
       ],
     );
@@ -185,10 +187,7 @@ class HomePage extends HookWidget {
                 const SizedBox(width: 8),
                 Text(
                   'Connection QR Code',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -202,11 +201,10 @@ class HomePage extends HookWidget {
               child: QrImageView(
                 data: url,
                 version: QrVersions.auto,
-                size: 180,
+                size: 160,
                 backgroundColor: Colors.white,
               ),
             ),
-           
           ],
         ),
       ),

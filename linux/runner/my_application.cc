@@ -20,6 +20,26 @@ static void first_frame_cb(MyApplication* self, FlView *view)
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Helper function to load icon from Flutter assets
+static GdkPixbuf* load_app_icon(const gchar* assets_path) {
+  gchar* icon_path = g_build_filename(assets_path, "flutter_assets", "assets", "icons", "app_icon.png", NULL);
+  GError* error = NULL;
+  GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(icon_path, &error);
+  
+  if (error) {
+    g_warning("Could not load app icon: %s", error->message);
+    g_error_free(error);
+    
+    // Try alternative icon paths
+    g_free(icon_path);
+    icon_path = g_build_filename(assets_path, "data", "flutter_assets", "assets", "icons", "app_icon.png", NULL);
+    pixbuf = gdk_pixbuf_new_from_file(icon_path, NULL);
+  }
+  
+  g_free(icon_path);
+  return pixbuf;
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -46,23 +66,35 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "mouser_manager");
+    gtk_header_bar_set_title(header_bar, "Mouser - Wireless PC Control");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "mouser_manager");
+    gtk_window_set_title(window, "Mouser - Wireless PC Control");
   }
 
-  gtk_window_set_default_size(window, 1280, 720);
+  // Set window size
+  gtk_window_set_default_size(window, 1000, 700);
+  gtk_window_set_resizable(window, TRUE);
+
+  // Set window icon
+  const gchar* assets_path = g_get_current_dir();
+  GdkPixbuf* icon = load_app_icon(assets_path);
+  if (icon) {
+    gtk_window_set_icon(window, icon);
+    g_object_unref(icon);
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(project, self->dart_entrypoint_arguments);
 
   FlView* view = fl_view_new(project);
+  
+  // Set background color (optional - white background)
   GdkRGBA background_color;
-  // Background defaults to black, override it here if necessary, e.g. #00000000 for transparent.
-  gdk_rgba_parse(&background_color, "#000000");
+  gdk_rgba_parse(&background_color, "#FFFFFF");
   fl_view_set_background_color(view, &background_color);
+  
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
@@ -97,19 +129,11 @@ static gboolean my_application_local_command_line(GApplication* application, gch
 
 // Implements GApplication::startup.
 static void my_application_startup(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
-
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 
 // Implements GApplication::shutdown.
 static void my_application_shutdown(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application shutdown.
-
   G_APPLICATION_CLASS(my_application_parent_class)->shutdown(application);
 }
 

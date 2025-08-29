@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 
 class ServerManager {
   Process? _serverProcess;
@@ -15,70 +12,36 @@ class ServerManager {
   Stream<String> get logStream => _logController.stream;
   Stream<bool> get statusStream => _statusController.stream;
 
-  static const String pythonBackendPath = 'assets/python_backend';
-  String? _backendDirectory;
+  // Use your specific backend path
+  static const String backendPath =
+      '/home/at4/Documents/flutter-projects/mouser-project/server-side';
 
-  Future<void> _ensureBackendFiles() async {
-    if (_backendDirectory != null) return;
-
+  Future<bool> _validateBackendPath() async {
     try {
-      // Get application documents directory
-      final appDir = await getApplicationDocumentsDirectory();
-      _backendDirectory = path.join(appDir.path, 'mouser_backend');
-
-      final backendDir = Directory(_backendDirectory!);
-
-      // Check if backend already exists
+      final backendDir = Directory(backendPath);
       if (!await backendDir.exists()) {
-        await backendDir.create(recursive: true);
-
-        // Copy Python backend files from assets
-        await _copyBackendFiles(backendDir);
-
-        _logController.add('📁 Backend files extracted to: $_backendDirectory');
-      } else {
-        _logController.add('📁 Using existing backend at: $_backendDirectory');
+        _logController.add('❌ Backend directory not found: $backendPath');
+        return false;
       }
+
+      // Check if main.py exists
+      final mainFile = File('$backendPath/main.py');
+      if (!await mainFile.exists()) {
+        _logController.add('❌ main.py not found in: $backendPath');
+        return false;
+      }
+
+      // Check if requirements.txt exists
+      final requirementsFile = File('$backendPath/requirements.txt');
+      if (!await requirementsFile.exists()) {
+        _logController.add('⚠️ requirements.txt not found in: $backendPath');
+      }
+
+      _logController.add('✅ Backend found at: $backendPath');
+      return true;
     } catch (e) {
-      _logController.add('❌ Failed to setup backend files: $e');
-      throw Exception('Failed to setup backend files: $e');
-    }
-  }
-
-  Future<void> _copyBackendFiles(Directory targetDir) async {
-    // List of backend files to copy
-    final files = [
-      'main.py',
-      'requirements.txt',
-      'config/settings.py',
-      'controllers/__init__.py',
-      'controllers/mouse_controller.py',
-      'controllers/keyboard_controller.py',
-      'models/__init__.py',
-      'models/gesture_state.py',
-      'routes/__init__.py',
-      'routes/mouse_routes.py',
-      'routes/keyboard_routes.py',
-      'routes/gesture_routes.py',
-      'routes/status_routes.py',
-      'routes/file_transfer_routes.py',
-      'utils/__init__.py',
-      'utils/logger.py',
-      'utils/network_utils.py',
-      'utils/key_mapper.py',
-    ];
-
-    for (final filePath in files) {
-      try {
-        final assetPath = '$pythonBackendPath/$filePath';
-        final content = await rootBundle.loadString(assetPath);
-
-        final targetFile = File(path.join(targetDir.path, filePath));
-        await targetFile.create(recursive: true);
-        await targetFile.writeAsString(content);
-      } catch (e) {
-        _logController.add('⚠️ Warning: Could not copy $filePath: $e');
-      }
+      _logController.add('❌ Error validating backend path: $e');
+      return false;
     }
   }
 
@@ -109,8 +72,6 @@ class ServerManager {
   }
 
   Future<void> _installDependencies() async {
-    if (_backendDirectory == null) return;
-
     try {
       _logController.add('📦 Installing Python dependencies...');
 
@@ -125,7 +86,7 @@ class ServerManager {
             'install',
             '-r',
             'requirements.txt',
-          ], workingDirectory: _backendDirectory);
+          ], workingDirectory: backendPath);
 
           if (result.exitCode == 0) {
             break;
@@ -139,8 +100,12 @@ class ServerManager {
         _logController.add('✅ Dependencies installed successfully');
       } else {
         _logController.add('⚠️ Failed to install some dependencies');
-        _logController.add('Output: ${result?.stdout ?? ""}');
-        _logController.add('Error: ${result?.stderr ?? ""}');
+        if (result?.stdout != null && result!.stdout.toString().isNotEmpty) {
+          _logController.add('Output: ${result.stdout}');
+        }
+        if (result?.stderr != null && result!.stderr.toString().isNotEmpty) {
+          _logController.add('Error: ${result.stderr}');
+        }
       }
     } catch (e) {
       _logController.add('❌ Error installing dependencies: $e');
@@ -154,8 +119,10 @@ class ServerManager {
     }
 
     try {
-      // Ensure backend files are ready
-      await _ensureBackendFiles();
+      // Validate backend path
+      if (!await _validateBackendPath()) {
+        throw Exception('Backend validation failed');
+      }
 
       // Check Python installation
       if (!await _checkPythonInstallation()) {
@@ -174,7 +141,7 @@ class ServerManager {
         try {
           _serverProcess = await Process.start(cmd, [
             'main.py',
-          ], workingDirectory: _backendDirectory);
+          ], workingDirectory: backendPath);
           break;
         } catch (e) {
           if (cmd == pythonCommands.last) {

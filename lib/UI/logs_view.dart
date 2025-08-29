@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 class LogsView extends StatefulWidget {
   final List<String> logs;
+  final VoidCallback onClearLogs; // Add this callback
 
   const LogsView({
     super.key,
     required this.logs,
+    required this.onClearLogs, // Initialize the callback
   });
 
   @override
@@ -19,7 +21,7 @@ class _LogsViewState extends State<LogsView> {
   @override
   void didUpdateWidget(LogsView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Auto-scroll to bottom when new logs are added
     if (_autoScroll && widget.logs.length > oldWidget.logs.length) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -55,10 +57,7 @@ class _LogsViewState extends State<LogsView> {
                 const SizedBox(width: 8),
                 Text(
                   'Server Logs',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 // Auto-scroll toggle
@@ -89,9 +88,9 @@ class _LogsViewState extends State<LogsView> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Logs container
             Expanded(
               child: Container(
@@ -105,15 +104,12 @@ class _LogsViewState extends State<LogsView> {
                     : _buildLogsList(),
               ),
             ),
-            
+
             // Footer
             const SizedBox(height: 8),
             Text(
               '${widget.logs.length} log entries',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -126,26 +122,16 @@ class _LogsViewState extends State<LogsView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.description_outlined,
-            size: 48,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.description_outlined, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 8),
           Text(
             'No logs yet',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 16,
-            ),
+            style: TextStyle(color: Colors.grey[500], fontSize: 16),
           ),
           const SizedBox(height: 4),
           Text(
             'Server logs will appear here',
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.grey[400], fontSize: 12),
           ),
         ],
       ),
@@ -168,7 +154,7 @@ class _LogsViewState extends State<LogsView> {
     // Parse log for styling
     Color? textColor;
     IconData? icon;
-    
+
     if (log.contains('🟢') || log.contains('✅')) {
       textColor = Colors.green[700];
       icon = Icons.check_circle;
@@ -194,11 +180,7 @@ class _LogsViewState extends State<LogsView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (icon != null) ...[
-            Icon(
-              icon,
-              size: 16,
-              color: textColor,
-            ),
+            Icon(icon, size: 16, color: textColor),
             const SizedBox(width: 8),
           ],
           Expanded(
@@ -218,13 +200,6 @@ class _LogsViewState extends State<LogsView> {
   }
 
   void _clearLogs() {
-    // This would need to be handled by the parent widget
-    // For now, we'll show a message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Clear logs functionality needs to be implemented'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    widget.onClearLogs(); // Call the callback
   }
 }
